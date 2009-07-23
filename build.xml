@@ -27,20 +27,66 @@
     -->
     <import file="build.properties.xml"/>
 
-    <target name="build.all" depends="compile.all"/>
+    <!--
+        ===================================================================
+          The project's target definitions
+        ===================================================================
+    -->
+    <target name="clean.all" depends="clean"/>
+    <target name="compile.all" depends="clean, compile"/>
+    <target name="jar.all" depends="compile.all, jar-lib" />
+    <target name="build.all" depends="jar.all"/>
+    <target name="run.all" depends="run"/>
 
-    <target name="clean.all">
+    <!--
+        ===================================================================
+          The project's targets
+        ===================================================================
+    -->
+    <target name="clean">
         <echoproperties/>
-        <delete dir="${classes.dir}"/>
+        <delete dir="${build.dir}"/>
     </target>
 
-    <target name="compile.all">
+    <target name="compile">
 
         <mkdir dir="${classes.dir}"/>
-        <javac srcdir="${src.java.runner};" destdir="${classes.dir}"
+        <javac srcdir="${src.java.arduino};" destdir="${classes.dir}"
                classpathref="classpath" source="1.5" target="jsr14"/>
 
     </target>
 
+    <target name="jar-lib">
+        <jar-lib />
+    </target>
+
+    <target name="run">
+        <run />
+    </target>
+
+    <macrodef name="jar-lib">
+        <sequential>
+            <property name="jar.dir"     value="${build.dir}/jar"/>
+
+            <mkdir dir="${jar.dir}"/>
+            <jar destfile="${jar.dir}/${ant.project.name}.jar" basedir="${classes.dir}">
+                <manifest>
+                    <attribute name="Main-Class" value="${main-class}"/>
+                </manifest>
+            </jar>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="run">
+        <sequential>
+	        <java fork="true" classname="${main-class}" dir="${build.dir}">
+	            <sysproperty key="java.library.path" value="${jnidir}"/>
+	            <classpath>
+		        <path refid="classpath"/>
+		        <path location="${jar.dir}/${ant.project.name}.jar"/>
+	            </classpath>
+	        </java>
+        </sequential>
+    </macrodef>
 
 </project>

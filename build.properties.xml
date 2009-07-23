@@ -27,10 +27,11 @@
     <property name="build.version"      value="0" />
     <property name="repository.url.pub" value="git://github.com/liquidware/Ant-Runner.git"/>
 
-    <property name="classes.dir"        value="bin/classes"/>
+    <property name="build.dir"          value="build"/>
+    <property name="classes.dir"        value="${build.dir}/classes"/>
     <property name="lib.dir"            value="lib"/>
-
-    <property name="src.java.runner"     value="src/components/antipasto_arduino/runner"/>
+    <property name="main-class"         value="arduino.tools.AntRunner"/>
+    <property name="src.java.arduino"    value="src/components/arduino"/>
      <path id="classpath">
         <fileset dir="${lib.dir}" includes="**/*.jar"/>
     </path>
