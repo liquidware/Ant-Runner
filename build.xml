@@ -37,7 +37,7 @@
     <target name="compile.all">
 
         <mkdir dir="${classes.dir}"/>
-        <javac srcdir="${src.java.ant-runner};" destdir="${classes.dir}"
+        <javac srcdir="${src.java.runner};" destdir="${classes.dir}"
                classpathref="classpath" source="1.5" target="jsr14"/>
 
     </target>

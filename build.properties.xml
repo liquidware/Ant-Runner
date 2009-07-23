@@ -24,12 +24,13 @@
          Set the properties related to the build
         ===================================================================
     -->
-    <property name="build.version" value="0" />
+    <property name="build.version"      value="0" />
+    <property name="repository.url.pub" value="git://github.com/liquidware/Ant-Runner.git"/>
 
-    <property name="classes.dir"    value="bin/classes"/>
-    <property name="lib.dir"        value="lib"/>
+    <property name="classes.dir"        value="bin/classes"/>
+    <property name="lib.dir"            value="lib"/>
 
-    <property name="src.java.ant-runner"     value="src/components/antipasto_arduino/runner"/>
+    <property name="src.java.runner"     value="src/components/antipasto_arduino/runner"/>
      <path id="classpath">
         <fileset dir="${lib.dir}" includes="**/*.jar"/>
     </path>
