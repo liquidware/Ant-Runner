@@ -1,5 +1,5 @@
 /**
- * 
+ * AntRunner - A wrapper for the Apache ANT build tool
    Copyright (C) 2009 Christopher Ladden All rights reserved.
  
    This library is free software; you can redistribute it and/or
@@ -33,56 +33,136 @@ import org.apache.tools.ant.ProjectHelper;
 import org.apache.tools.ant.listener.AnsiColorLogger;
 
 public class AntRunner {
+	static public final int MSG_WARN    = Project.MSG_WARN;
+	static public final int MSG_INFO    = Project.MSG_INFO;
+	static public final int MSG_VERBOSE = Project.MSG_VERBOSE;
+	
+	volatile int outputLevel = MSG_WARN;
+	volatile boolean isRunning = false;
+	volatile boolean runSuccessful = false;	
+	volatile String propertyList[];
+	
+	/**
+	 * 
+	 * @return
+	 * Returns the status of the runner. True means it's currently executing.
+	 */
+	public boolean isRunning() {
+		return isRunning;
+	}
+	
+	/**
+	 * 
+	 * @param level
+	 * The output message level. 
+	 */
+	public void setOutputLevel(int level) {
+		outputLevel = level;
+	}
+	
+	/**
+	 * Most quiet output level
+	 */
+	public void setOutputQuiet() {
+		outputLevel = MSG_WARN;
+	}
 
+	/**
+	 * Most verbose output level.
+	 */
+	public void setOutputVerbose() {
+		outputLevel = MSG_VERBOSE;
+	}
+	
+	/**
+	 * Check the last run result
+	 * @return
+	 * Returns the last run result.
+	 */
+	public boolean getLastRunStatus() {
+		return runSuccessful;
+	}
+	
 	/**
 	 * 
 	 * @param buildfile
-	 *            The buildfile.
+	 *            The buildfile to run.
+	 * @param antTaget
+	 * 			  The target name in the buildfile to run.     
+	 * @param propertyList
+	 * 		      A list of properties to set in the project. 
+	 * 			  The format is as follows: "property1","value1",
+	 * 									    "property2", "value2",...
 	 */
-	public void compile(String buildfile, String target) {
-		run(new String[] { buildfile, target});
-	}
-
-	/**
-	 * 
-	 * @param args
-	 *            The first argument = buildfile
-	 *            The second argument = target
-	 */
-	public void run(final String args[]) {
-
-		File buildFile = new File(args[0]);
+	public void run(String buildfile, final String antTarget, 
+				    final String[] propertyList) {
 		
-		Project p = new Project();
-		p.setUserProperty("ant.file", buildFile.getAbsolutePath());
-		DefaultLogger consoleLogger = new DefaultLogger();
-		consoleLogger.setErrorPrintStream(System.err);
-		consoleLogger.setOutputPrintStream(System.out);
-		consoleLogger.setMessageOutputLevel(Project.MSG_VERBOSE);
-		p.addBuildListener(consoleLogger);
+	final File buildFile = new File(buildfile);
+		
+		/*
+		 * A class to run ant in a new thread.
+		 */
+		class AntRunnable implements Runnable {
 
-		try {
-			p.fireBuildStarted();
-			p.init();
-			ProjectHelper helper = ProjectHelper.getProjectHelper();
-			p.addReference("ant.projectHelper", helper);
-			helper.parse(p, buildFile);
-			
-			if (args[1] != null) {
-			   p.executeTarget(args[1]);
-			} else {
-			   p.executeTarget(p.getDefaultTarget());
+			@Override
+			public void run() {
+				runSuccessful = false; //reset the status
+				
+				Project p = new Project();
+				p.setUserProperty("ant.file", buildFile.getAbsolutePath());
+				for (int x=0; x < propertyList.length; x+=2) {
+					p.setProperty(propertyList[x], propertyList[x+1]);
+				}
+				
+				DefaultLogger consoleLogger = new DefaultLogger();
+				consoleLogger.setErrorPrintStream(System.err);
+				consoleLogger.setOutputPrintStream(System.out);
+				consoleLogger.setMessageOutputLevel(outputLevel);
+
+				p.addBuildListener(consoleLogger);
+
+				try {
+					p.fireBuildStarted();
+					p.init();
+					ProjectHelper helper = ProjectHelper.getProjectHelper();
+					p.addReference("ant.projectHelper", helper);
+					helper.parse(p, buildFile);
+					
+					if (antTarget != null) {
+					   p.executeTarget(antTarget);
+					} else {
+					   p.executeTarget(p.getDefaultTarget());
+					}
+					
+					p.fireBuildFinished(null);
+					
+					runSuccessful = true; //we're finished and good.
+					
+				} catch (BuildException e) {
+					
+					runSuccessful = false; //we're finished and unsuccessful
+					p.fireBuildFinished(e);
+					
+				}	
+				
+				//I've stopped
+				isRunning = false;
 			}
-			
-			p.fireBuildFinished(null);
-		} catch (BuildException e) {
-			p.fireBuildFinished(e);
 		}
-
+		
+		AntRunnable antRunnable = new AntRunnable();
+		Thread antThread = new Thread(antRunnable);
+		isRunning = true;
+		antThread.start();
+		
 	}
 
+	/** 
+	 * Wrapper code, could be used for running unit tests via the command line.
+	 * 
+	 * @param args 
+	 */
 	public static void main(String args[]) {
-		AntRunner runner = new AntRunner();
-	    runner.run(args);
+		/* Nothing */
 	}
 }
